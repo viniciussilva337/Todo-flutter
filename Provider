@@ -153,4 +153,208 @@ A camada de acesso à API deve estar implementada corretamente e funcionando.
 O Provider deve gerenciar corretamente o estado de carregamento e atualizar a
 interface.
 O indicador de carregamento deve aparecer e desaparecer no momento correto.
+
+Aqui está um guia passo a passo para implementar o aplicativo Flutter conforme descrito.
+
+Estrutura do Projeto
+
+	1.	Camada de Acesso à API - Classe responsável por fazer requisições HTTP.
+	2.	Modelo - Classe de dados que representa a estrutura do eletroposto retornada pela API.
+	3.	Provider - Gerencia o estado dos eletropostos e notifica a interface sobre as mudanças.
+	4.	Interface do Usuário - Exibe a lista de eletropostos em um ListView e mostra um indicador de carregamento enquanto os dados estão sendo recuperados.
+
+Passo a Passo
+
+Tarefa 1: Criação da Camada de Acesso à API
+
+	1.	Classe Modelo (Eletroposto):
+	•	Primeiro, faça uma requisição ao endpoint para verificar a estrutura dos dados retornados.
+	•	Crie uma classe Dart que representa o modelo de um eletroposto.
+
+class Eletroposto {
+  final String nome;
+  final String informacoes;
+  final String endereco;
+  final String telefone;
+  final List<String> conectores;
+
+  Eletroposto({
+    required this.nome,
+    required this.informacoes,
+    required this.endereco,
+    required this.telefone,
+    required this.conectores,
+  });
+
+  // Factory method para criação do modelo a partir do JSON retornado pela API
+  factory Eletroposto.fromJson(Map<String, dynamic> json) {
+    return Eletroposto(
+      nome: json['nome'],
+      informacoes: json['informacoes'],
+      endereco: json['endereco'],
+      telefone: json['telefone'],
+      conectores: List<String>.from(json['conectores']),
+    );
+  }
+}
+
+
+	2.	Classe de Acesso à API (ApiService):
+	•	Crie uma classe responsável por fazer as requisições HTTP e buscar os eletropostos.
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'eletroposto.dart';
+
+class ApiService {
+  static const String _baseUrl = 'https://eletropostos.azurewebsites.net/api/eletroposto';
+
+  Future<List<Eletroposto>> fetchEletropostos() async {
+    final response = await http.get(Uri.parse(_baseUrl));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Eletroposto.fromJson(json)).toList();
+    } else {
+      throw Exception('Falha ao carregar eletropostos');
+    }
+  }
+}
+
+
+
+Tarefa 2: Criação do Provider
+
+Crie um Provider que será responsável pelo estado dos eletropostos e pelo gerenciamento de carregamento.
+
+import 'package:flutter/material.dart';
+import 'eletroposto.dart';
+import 'api_service.dart';
+
+class EletropostoProvider with ChangeNotifier {
+  List<Eletroposto> _eletropostos = [];
+  bool _isLoading = false;
+
+  List<Eletroposto> get eletropostos => _eletropostos;
+  bool get isLoading => _isLoading;
+
+  final ApiService _apiService = ApiService();
+
+  Future<void> loadEletropostos() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _eletropostos = await _apiService.fetchEletropostos();
+    } catch (error) {
+      print('Erro ao carregar eletropostos: $error');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}
+
+Tarefa 3: Exibição de Loading
+
+Na interface, exiba o indicador de carregamento enquanto o Provider estiver buscando os dados.
+
+Tarefa 4: Listagem de Eletropostos Utilizando ListView
+
+Implemente a interface para exibir a lista de eletropostos.
+	1.	Tela Principal (main.dart):
+	•	Configure o MultiProvider para incluir o EletropostoProvider.
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'eletroposto_provider.dart';
+import 'home_page.dart';
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => EletropostoProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: HomePage(),
+    );
+  }
+}
+
+
+	2.	Tela de Listagem de Eletropostos (home_page.dart):
+	•	Use o Consumer para exibir o CircularProgressIndicator enquanto o isLoading estiver verdadeiro e o ListView quando os dados forem carregados.
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'eletroposto_provider.dart';
+
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<EletropostoProvider>(context);
+
+    // Carregar os eletropostos ao iniciar a tela
+    provider.loadEletropostos();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Eletropostos Próximos"),
+      ),
+      body: Consumer<EletropostoProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.eletropostos.isEmpty) {
+            return Center(child: Text("Nenhum eletroposto encontrado."));
+          }
+
+          return ListView.builder(
+            itemCount: provider.eletropostos.length,
+            itemBuilder: (context, index) {
+              final eletroposto = provider.eletropostos[index];
+              return ListTile(
+                title: Text(eletroposto.nome),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Informações: ${eletroposto.informacoes}"),
+                    Text("Endereço: ${eletroposto.endereco}"),
+                    Text("Telefone: ${eletroposto.telefone}"),
+                    Text("Conectores: ${eletroposto.conectores.join(', ')}"),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+
+Explicação
+
+	1.	Camada de Acesso à API: ApiService faz a requisição HTTP e retorna uma lista de objetos Eletroposto com base no JSON da API.
+	2.	Provider: EletropostoProvider gerencia o estado de carregamento (isLoading) e a lista de eletropostos, notificando a interface sobre mudanças.
+	3.	Exibição de Loading: CircularProgressIndicator é exibido enquanto os dados estão sendo carregados.
+	4.	Listagem de Eletropostos: Os dados são exibidos em um ListView.builder, mostrando as informações do eletroposto (nome, informações, endereço, telefone e conectores).
+
+Com essas etapas, você terá um aplicativo Flutter funcional que utiliza o Provider para gerenciamento de estado, conecta-se a uma API externa e exibe dados com uma animação de carregamento.
+
+
+
 A lista de eletropostos deve ser exibida corretamente no ListView.
