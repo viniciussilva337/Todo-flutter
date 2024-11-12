@@ -124,3 +124,33 @@ Widget build(BuildContext context) {
     ),
   );
 }
+
+
+
+Desenvolver um aplicativo Flutter que utiliza uma API para listar eletropostos próximos
+do usuário. O app deve exibir os eletropostos em um ListView e implementar uma
+animação de carregamento (loading) enquanto os dados estão sendo recuperados. O
+gerenciamento de estado deve ser feito com Provider.
+Tarefa 1: Criação da Camada de Acesso à API (até 3 pontos)
+Criar uma classe responsável por fazer as requisições HTTP para buscar os eletropostos
+próximos.
+Utilize o endpoint https://eletropostos.azurewebsites.net/api/eletroposto
+Crie a classe modelo de acordo com os dados que são retornados da API
+Tarefa 2: Criação do Provider (até 3 pontos)
+Criar um Provider que gerencie o estado dos eletropostos e chame o método de busca
+na API.
+O Provider será responsável por buscar os dados da camada de acesso a dados e
+notificar a interface sobre as mudanças ocorridas.
+Tarefa 3: Exibição de Loading (até 1 ponto)
+Implementar um indicador de carregamento (loading) que será exibido enquanto os
+dados são carregados.
+Utilizar o Widget CircularProgressIndicator para exibição do loading
+Tarefa 4: Listagem de Eletropostos Utilizando ListView (até 3 pontos)
+Exibir a lista de eletropostos obtida da API em um ListView.builder.
+Exibir nome, informações, endereços, telefones e os conectores
+Critérios de Avaliação
+A camada de acesso à API deve estar implementada corretamente e funcionando.
+O Provider deve gerenciar corretamente o estado de carregamento e atualizar a
+interface.
+O indicador de carregamento deve aparecer e desaparecer no momento correto.
+A lista de eletropostos deve ser exibida corretamente no ListView.
